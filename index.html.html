@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bayesian Simulator — Vertebral Compression Fracture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#1a1a2e;--ink2:#4a4a6a;--ink3:#8888aa;
+  --bg:#f8f8fc;--surf:#ffffff;--border:#e2e2ee;
+  --blue:#2563eb;--green:#059669;--amber:#d97706;--red:#dc2626;--teal:#0891b2;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);padding:2rem 1rem;min-height:100vh;}
+.page{max-width:860px;margin:0 auto;}
+
+/* Header */
+.header{border-bottom:1.5px solid var(--ink);padding-bottom:1.25rem;margin-bottom:2rem;}
+.journal-tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.14em;color:var(--ink3);text-transform:uppercase;margin-bottom:0.6rem;}
+h1{font-size:16px;font-weight:500;color:var(--ink);line-height:1.5;margin-bottom:0.5rem;}
+.authors{font-size:12px;color:var(--ink2);margin-bottom:0.5rem;}
+.meta-row{display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.75rem;}
+.meta-item{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink2);}
+.meta-item span{color:var(--ink);font-weight:500;}
+
+/* Section label */
+.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--ink3);text-transform:uppercase;margin-bottom:0.75rem;}
+
+/* LR table grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+@media(max-width:580px){.grid2{grid-template-columns:1fr;}}
+.card{background:var(--surf);border:0.5px solid var(--border);border-radius:8px;padding:1rem;}
+.card-title{font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:8px;}
+.lr-table{width:100%;border-collapse:collapse;font-size:12px;}
+.lr-table th{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;color:var(--ink3);text-transform:uppercase;padding:4px 8px;border-bottom:1px solid var(--border);text-align:left;}
+.lr-table td{padding:6px 8px;color:var(--ink2);border-bottom:0.5px solid var(--border);}
+.lr-table tr:last-child td{border-bottom:none;}
+.lr-table td:first-child{color:var(--ink);font-weight:500;}
+.lr-pos{color:var(--green);font-family:'DM Mono',monospace;font-weight:500;}
+.lr-neg{color:var(--red);font-family:'DM Mono',monospace;font-weight:500;}
+.lr-warn{color:var(--amber);font-family:'DM Mono',monospace;font-weight:500;}
+.table-note{font-size:10px;color:var(--ink3);margin-top:6px;}
+
+/* Simulator panel */
+.sim-panel{background:var(--surf);border:0.5px solid var(--border);border-radius:8px;padding:1.25rem;margin-bottom:1rem;}
+.control-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:0.5rem;}
+.ctrl-label{font-size:12px;color:var(--ink2);min-width:120px;}
+input[type=range]{flex:1;min-width:140px;accent-color:var(--blue);}
+.val-badge{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:var(--ink);min-width:42px;}
+.preset-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:0.25rem;}
+.preset{font-size:11px;padding:3px 12px;border:0.5px solid var(--border);border-radius:4px;cursor:pointer;background:var(--bg);color:var(--ink2);transition:background 0.1s;}
+.preset:hover{background:#ededf5;}
+
+.step-divider{border:none;border-top:0.5px dashed var(--border);margin:1rem 0;}
+.step-header{display:flex;align-items:center;gap:8px;margin-bottom:0.6rem;}
+.step-num{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;background:var(--ink);color:#fff;border-radius:3px;padding:2px 8px;letter-spacing:0.06em;}
+.step-title{font-size:12px;font-weight:500;color:var(--ink2);}
+
+.test-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+@media(max-width:480px){.test-grid{grid-template-columns:1fr;}}
+.test-btn{border:0.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:11px;cursor:pointer;background:var(--surf);color:var(--ink2);text-align:left;transition:all 0.15s;display:flex;align-items:center;gap:7px;line-height:1.4;}
+.test-btn:hover{background:var(--bg);}
+.test-btn.active{border-color:var(--blue);background:#eff6ff;color:var(--blue);}
+.test-btn.active-red{border-color:var(--red);background:#fef2f2;color:var(--red);}
+.test-btn input{flex-shrink:0;}
+
+/* Chart */
+.chart-wrap{position:relative;width:100%;height:220px;margin-bottom:1rem;}
+
+/* Prob cards */
+.prob-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:0.75rem;}
+@media(max-width:520px){.prob-row{grid-template-columns:repeat(2,1fr);}}
+.prob-card{border-radius:6px;padding:0.65rem 0.75rem;border:0.5px solid var(--border);background:var(--surf);}
+.plabel{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px;}
+.pval{font-size:20px;font-weight:500;color:var(--ink);}
+
+/* Interpretation */
+.interp{padding:0.7rem 1rem;border-left:2px solid var(--teal);font-size:12px;color:var(--ink2);line-height:1.7;background:#f0fdfa;border-radius:0 6px 6px 0;margin-bottom:1.5rem;}
+
+/* References */
+.ref-section{border-top:0.5px solid var(--border);padding-top:1rem;}
+.ref-section p{font-size:11px;color:var(--ink3);line-height:1.7;margin-bottom:0.25rem;}
+.ref-section strong{color:var(--ink2);}
+.ref-section em{font-style:italic;}
+
+/* Footer */
+.footer{margin-top:1.5rem;padding-top:0.75rem;border-top:0.5px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);text-align:center;}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- Header -->
+<div class="header">
+  <div class="journal-tag">Supplementary Material — Interactive Appendix</div>
+  <h1>Diagnostic Accuracy of Dynamic Radiographs in Elderly Patients with Acute Vertebral Compression Fractures: Flexion-Extension and Sitting Radiographs</h1>
+  <div class="authors">Norio Yamamoto, MD, PhD &nbsp;·&nbsp; Masaki Konishi, MD &nbsp;·&nbsp; Masashi Shibata, MD &nbsp;·&nbsp; Yosuke Tomita, PT, PhD</div>
+  <div class="meta-row">
+    <div class="meta-item">Model: <span>Bayesian updating (Fagan nomogram)</span></div>
+    <div class="meta-item">Data source: <span>This study (patient &amp; per-vertebra level)</span></div>
+    <div class="meta-item">CI method: <span>Wilson score 95%CI</span></div>
+    <div class="meta-item">DOI: <span>Not assigned</span></div>
+  </div>
+</div>
+
+<!-- LR reference tables -->
+<div class="section-label">Likelihood Ratios Derived from This Study</div>
+<div class="grid2">
+  <div class="card">
+    <div class="card-title">Present Illness &amp; Physical Examination</div>
+    <table class="lr-table">
+      <tr><th>Finding</th><th>Sen (%)</th><th>Spe (%)</th><th>LR+</th><th>LR−</th></tr>
+      <tr><td>Fall from standing height</td><td>62.3</td><td>63.3</td><td class="lr-warn">1.70</td><td class="lr-neg">0.59</td></tr>
+      <tr><td>Closed-fist percussion</td><td>93.4</td><td>20.0</td><td class="lr-warn">1.17</td><td class="lr-pos">0.33</td></tr>
+      <tr><td>Turning-over difficulty</td><td>40.6</td><td>43.3</td><td class="lr-neg">0.72</td><td class="lr-neg">1.37</td></tr>
+      <tr><td>Sitting radiograph (patient level)</td><td>77.2</td><td>86.2</td><td class="lr-warn">5.60</td><td class="lr-neg">0.26</td></tr>
+    </table>
+    <div class="table-note">LR+ &gt;10: strong; 2–10: moderate; &lt;2: weak; &lt;1: probability decreases</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Radiographic Findings (per-vertebra level)</div>
+    <table class="lr-table">
+      <tr><th>Finding</th><th>Sen (%)</th><th>Spe (%)</th><th>LR+</th><th>LR−</th></tr>
+      <tr><td>Sitting radiograph (+)</td><td>61.5</td><td>98.8</td><td class="lr-pos">51.3</td><td class="lr-neg">0.39</td></tr>
+      <tr><td>Flex/Ext radiograph (+)</td><td>60.3</td><td>94.9</td><td class="lr-pos">11.8</td><td class="lr-neg">0.42</td></tr>
+      <tr><td>Sitting radiograph (−)</td><td>—</td><td>—</td><td>—</td><td class="lr-pos">0.39</td></tr>
+    </table>
+    <div class="table-note">High specificity at vertebra level drives strong LR+</div>
+  </div>
+</div>
+
+<!-- Simulator -->
+<div class="section-label">Interactive Bayesian Update Simulator</div>
+<div class="sim-panel">
+
+  <div class="control-row">
+    <span class="ctrl-label">Prior probability</span>
+    <input type="range" min="1" max="90" value="30" id="prior" step="1">
+    <span class="val-badge" id="priorOut">30%</span>
+  </div>
+  <div class="preset-row">
+    <span style="font-size:11px;color:var(--ink3);align-self:center;">Presets:</span>
+    <button class="preset" onclick="setPrior(10)">Low risk 10%</button>
+    <button class="preset" onclick="setPrior(30)">Moderate 30%</button>
+    <button class="preset" onclick="setPrior(60)">High risk 60%</button>
+  </div>
+
+  <hr class="step-divider">
+
+  <div class="step-header">
+    <span class="step-num">STEP 1</span>
+    <span class="step-title">Present Illness</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr;gap:6px;">
+    <label class="test-btn" id="btn_fall">
+      <input type="checkbox" id="fall" onchange="render()">
+      Fall from standing height (positive) &nbsp;<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);">LR+ 1.70</span>
+    </label>
+  </div>
+
+  <hr class="step-divider">
+
+  <div class="step-header">
+    <span class="step-num">STEP 2</span>
+    <span class="step-title">Physical Examination</span>
+  </div>
+  <div class="test-grid">
+    <label class="test-btn" id="btn_ppos">
+      <input type="checkbox" id="ppos" onchange="render()">
+      Closed-fist percussion (positive) &nbsp;<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);">LR+ 1.17</span>
+    </label>
+    <label class="test-btn" id="btn_pneg">
+      <input type="checkbox" id="pneg" onchange="render()">
+      Closed-fist percussion (negative) &nbsp;<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);">LR− 0.33</span>
+    </label>
+    <label class="test-btn" id="btn_turn">
+      <input type="checkbox" id="turn" onchange="render()">
+      Turning-over difficulty (positive) &nbsp;<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);">LR+ 0.72</span>
+    </label>
+    <label class="test-btn" id="btn_sit_pt">
+      <input type="checkbox" id="sit_pt" onchange="render()">
+      Sitting radiograph, patient level (positive) &nbsp;<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);">LR+ 5.60</span>
+    </label>
+  </div>
+
+  <hr class="step-divider">
+
+  <div class="step-header">
+    <span class="step-num">STEP 3</span>
+    <span class="step-title">Radiographic Findings — select one</span>
+  </div>
+  <div class="test-grid">
+    <label class="test-btn" id="btn_sit">
+      <input type="radio" name="xr" value="sit" onchange="render()">
+      Sitting XP, per-vertebra (positive) &nbsp;<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);">LR+ 51.3</span>
+    </label>
+    <label class="test-btn" id="btn_fe">
+      <input type="radio" name="xr" value="fe" onchange="render()">
+      Flex/Ext XP, per-vertebra (positive) &nbsp;<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);">LR+ 11.8</span>
+    </label>
+    <label class="test-btn" id="btn_sitn">
+      <input type="radio" name="xr" value="sitn" onchange="render()">
+      Sitting XP, per-vertebra (negative) &nbsp;<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);">LR− 0.39</span>
+    </label>
+    <label class="test-btn" id="btn_none">
+      <input type="radio" name="xr" value="none" checked onchange="render()">
+      No imaging performed
+    </label>
+  </div>
+
+</div>
+
+<!-- Chart -->
+<div class="chart-wrap"><canvas id="mc"></canvas></div>
+
+<!-- Probability cards -->
+<div class="prob-row">
+  <div class="prob-card"><div class="plabel">Prior</div><div class="pval" id="c0">30%</div></div>
+  <div class="prob-card"><div class="plabel">After Step 1</div><div class="pval" id="c1">—</div></div>
+  <div class="prob-card"><div class="plabel">After Step 2</div><div class="pval" id="c2">—</div></div>
+  <div class="prob-card"><div class="plabel">Posterior (Step 3)</div><div class="pval" id="c3">—</div></div>
+</div>
+
+<!-- Interpretation -->
+<div class="interp" id="interp">Select findings above to begin Bayesian updating.</div>
+
+<!-- References -->
+<div class="ref-section">
+  <div class="section-label" style="margin-bottom:0.5rem;">References</div>
+  <p><strong>1.</strong> Fagan TJ. Nomogram for Bayes theorem. <em>N Engl J Med.</em> 1975;293(5):257.</p>
+  <p><strong>2.</strong> Jaeschke R, Guyatt GH, Sackett DL. Users' guides to the medical literature. III. How to use an article about a diagnostic test. B. What are the results and will they help me in caring for my patients? <em>JAMA.</em> 1994;271(9):703–707.</p>
+  <p><strong>3.</strong> McGee S. Simplifying likelihood ratios. <em>J Gen Intern Med.</em> 2002;17(8):646–649.</p>
+</div>
+
+<div class="footer">
+  Yamamoto N et al. · Bayesian Diagnostic Simulator · Supplementary Interactive Tool · 2025
+</div>
+
+</div><!-- /page -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const LRS={
+  fall: {lr:1.70, label:'Fall from standing (+)'},
+  ppos: {lr:1.17, label:'Percussion (+)'},
+  pneg: {lr:0.33, label:'Percussion (−)'},
+  turn: {lr:0.72, label:'Turning-over (+)'},
+  sit_pt:{lr:5.60, label:'Sitting XP patient (+)'},
+  sit:  {lr:51.3, label:'Sitting XP (+)'},
+  fe:   {lr:11.8, label:'Flex/Ext XP (+)'},
+  sitn: {lr:0.39, label:'Sitting XP (−)'},
+};
+function p2o(p){return p/(1-p);}
+function o2p(o){return o/(1+o);}
+function upd(p,lr){return o2p(p2o(p)*lr);}
+function barColor(lr){
+  if(lr>=10) return '#059669';
+  if(lr>=2)  return '#2563eb';
+  if(lr>=1)  return '#d97706';
+  return '#dc2626';
+}
+
+let chart=null;
+
+function render(){
+  const prior=parseInt(document.getElementById('prior').value)/100;
+  document.getElementById('priorOut').textContent=Math.round(prior*100)+'%';
+
+  const steps=[{label:'Prior',prob:prior,color:'#64748b'}];
+  let cur=prior;
+
+  // Step 1
+  const fallEl=document.getElementById('fall');
+  const fallBtn=document.getElementById('btn_fall');
+  if(fallEl.checked){
+    cur=upd(cur,LRS.fall.lr);
+    steps.push({label:LRS.fall.label,prob:cur,color:barColor(LRS.fall.lr)});
+    fallBtn.className='test-btn active';
+  } else {
+    fallBtn.className='test-btn';
+  }
+  const afterS1=fallEl.checked?cur:null;
+
+  // Step 2
+  const physKeys=['ppos','pneg','turn','sit_pt'];
+  let anyPhys=false;
+  physKeys.forEach(k=>{
+    const el=document.getElementById(k);
+    const btn=document.getElementById('btn_'+k);
+    if(el.checked){
+      anyPhys=true;
+      cur=upd(cur,LRS[k].lr);
+      steps.push({label:LRS[k].label,prob:cur,color:barColor(LRS[k].lr)});
+      btn.className='test-btn '+(LRS[k].lr>=1?'active':'active-red');
+    } else {
+      btn.className='test-btn';
+    }
+  });
+  const afterS2=anyPhys?cur:null;
+
+  // Step 3
+  const xr=document.querySelector('input[name=xr]:checked')?.value||'none';
+  ['sit','fe','sitn','none'].forEach(k=>{
+    const btn=document.getElementById('btn_'+k);
+    if(btn) btn.className='test-btn'+(xr===k&&k!=='none'?' active':'');
+  });
+  if(xr!=='none'&&LRS[xr]){
+    cur=upd(cur,LRS[xr].lr);
+    steps.push({label:LRS[xr].label,prob:cur,color:barColor(LRS[xr].lr)});
+  }
+
+  // Chart
+  const labels=steps.map(s=>s.label);
+  const data=steps.map(s=>parseFloat((s.prob*100).toFixed(1)));
+  const colors=steps.map(s=>s.color);
+
+  if(chart) chart.destroy();
+  chart=new Chart(document.getElementById('mc'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        data,
+        backgroundColor:colors,
+        borderColor:colors,
+        borderWidth:0,
+        barPercentage:0.5,
+        borderRadius:4,
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>`P = ${c.raw.toFixed(1)}%`}}
+      },
+      scales:{
+        x:{ticks:{font:{size:11},color:'#4a4a6a'}},
+        y:{
+          min:0,max:100,
+          ticks:{callback:v=>v+'%',font:{size:11},color:'#8888aa'},
+          grid:{color:'rgba(0,0,0,0.05)'}
+        }
+      }
+    }
+  });
+
+  // Cards
+  document.getElementById('c0').textContent=Math.round(prior*100)+'%';
+  document.getElementById('c1').textContent=afterS1!==null?Math.round(afterS1*100)+'%':'—';
+  document.getElementById('c2').textContent=afterS2!==null?Math.round(afterS2*100)+'%':'—';
+  document.getElementById('c3').textContent=(xr!=='none')?Math.round(cur*100)+'%':'—';
+
+  // Interpretation
+  const fp=cur*100;
+  let msg='';
+  if(fp>=80)      msg=`<strong>Posterior probability: ${fp.toFixed(1)}%</strong> — High confidence of vertebral fracture. Confirmatory MRI or treatment initiation is recommended.`;
+  else if(fp>=50) msg=`<strong>Posterior probability: ${fp.toFixed(1)}%</strong> — Fracture likely. Consider specialist referral or advanced imaging (MRI).`;
+  else if(fp>=20) msg=`<strong>Posterior probability: ${fp.toFixed(1)}%</strong> — Intermediate probability. Watchful waiting with follow-up imaging may be appropriate.`;
+  else            msg=`<strong>Posterior probability: ${fp.toFixed(1)}%</strong> — Fracture unlikely at this threshold. Clinical suspicion should guide further work-up.`;
+
+  if(xr==='sit')  msg+=` <span style="color:#0891b2;"> Sitting radiograph (per-vertebra) positive: LR+ = 51.3 — strong confirmatory evidence for vertebral fracture.</span>`;
+  else if(xr==='fe') msg+=` <span style="color:#0891b2;"> Flex/Ext radiograph (per-vertebra) positive: LR+ = 11.8 — moderate-to-strong confirmatory evidence.</span>`;
+  else if(xr==='sitn') msg+=` <span style="color:#d97706;"> Sitting radiograph (per-vertebra) negative: LR− = 0.39 — reduces but does not exclude fracture probability.</span>`;
+
+  document.getElementById('interp').innerHTML=msg;
+}
+
+function setPrior(v){
+  document.getElementById('prior').value=v;
+  render();
+}
+document.getElementById('prior').addEventListener('input',render);
+render();
+</script>
+</body>
+</html>
